@@ -14,7 +14,7 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className='home-container'>
       {callStarted ? (
         <VideoCall initiator={true} />
       ) : (

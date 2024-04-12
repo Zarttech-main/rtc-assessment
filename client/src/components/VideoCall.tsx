@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import SimplePeer from 'simple-peer';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:3004');
+const socket = io('http://localhost:3004', { reconnection: true, reconnectionAttempts: 5 });
 
 interface VideoCallProps {
   initiator: boolean;
@@ -15,15 +15,21 @@ const VideoCall: React.FC<VideoCallProps> = ({ initiator }) => {
   let peer: any = null;
 
   useEffect(() => {
+    socket.on('connect_error', (error) => {
+      setError('WebSocket connection error: ' + error.message);
+    });
+
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
       if (initiator) {
         peer = new SimplePeer({ initiator: true, stream });
         peer.on('signal', (data: any) => {
+          // Send offer signal to the server
           socket.emit('signaling', { type: 'offer', targetUserId: '', data });
         });
       } else {
+        // Code to handle receiving signal data and creating peer connection
         socket.on('signaling', (message: any) => {
           if (message.type === 'offer') {
             peer = new SimplePeer({ initiator: false, stream });
@@ -41,6 +47,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ initiator }) => {
       });
 
       peer.on('close', () => {
+        // Handle call end
       });
 
       peer.on('error', (err: any) => {

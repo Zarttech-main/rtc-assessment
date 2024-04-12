@@ -22,8 +22,6 @@ $ yarn start or npm start
 
 You app will open at http://localhost:3000
 
-> Note that the server may start on a different port if :3000 is in use.
-
 ## Server - Backend Technologies Used
 - Nodejs
 - Express
@@ -36,6 +34,8 @@ After installing dependencies,
 ```bash
 $ node index.js
 ```
+
+> Note that the server start on port :3004.
 
 ## Directory structure
 

@@ -1,5 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import SimplePeer from 'simple-peer';
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:3001');
 
 interface VideoCallProps {
   initiator: boolean;
@@ -8,34 +11,47 @@ interface VideoCallProps {
 const VideoCall: React.FC<VideoCallProps> = ({ initiator }) => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const peerRef = useRef<any>(null);
+  let peer: any = null;
 
   useEffect(() => {
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
       if (initiator) {
-        peerRef.current = new SimplePeer({ initiator: true, stream });
-        peerRef.current.on('signal', (data: any) => {
+        peer = new SimplePeer({ initiator: true, stream });
+        peer.on('signal', (data: any) => {
+          // Send offer signal to the server
+          socket.emit('signaling', { type: 'offer', targetUserId: '', data });
         });
       } else {
         // Code to handle receiving signal data and creating peer connection
+        socket.on('signaling', (message: any) => {
+          if (message.type === 'offer') {
+            peer = new SimplePeer({ initiator: false, stream });
+            peer.signal(message.data);
+          } else if (message.type === 'answer') {
+            peer.signal(message.data);
+          } else if (message.type === 'iceCandidate') {
+            peer.signal(message.data);
+          }
+        });
       }
 
-      peerRef.current.on('stream', (stream: MediaStream) => {
+      peer.on('stream', (stream: MediaStream) => {
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = stream;
       });
 
-      peerRef.current.on('close', () => {
+      peer.on('close', () => {
+        // Handle call end
       });
 
-      peerRef.current.on('error', (err: any) => {
+      peer.on('error', (err: any) => {
         console.error('WebRTC error:', err);
       });
 
       return () => {
-        if (peerRef.current) {
-          peerRef.current.destroy();
+        if (peer) {
+          peer.destroy();
         }
       };
     }).catch(err => console.error('getUserMedia error:', err));

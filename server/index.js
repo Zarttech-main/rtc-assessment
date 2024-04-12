@@ -34,7 +34,15 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     users.delete(userId);
   });
+
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
+  });
 });
+
+function handleWebRTCError(err) {
+  console.error('WebRTC error:', err);
+}
 
 server.listen(3004, () => {
   console.log('Server started on port 3004');
